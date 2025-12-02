@@ -27,10 +27,10 @@ TOKEN = os.getenv("DISCORD_TOKEN")
 if not TOKEN:
     raise SystemExit("DISCORD_TOKEN not set in environment")
 
-# Discord intents
+# Discord intents - using only default intents to avoid privileged intent requirements
 intents = discord.Intents.default()
-intents.message_content = True
-intents.members = True
+# Note: Message content intent may be required for mention detection
+# If the bot doesn't respond to mentions, enable "Message Content Intent" in Discord Developer Portal
 
 # Channel where search is allowed
 SEARCH_CHANNEL_NAME = "search-user"
@@ -297,12 +297,46 @@ async def on_message(message: discord.Message) -> None:
         await message.channel.send(embed=embed)
 
     # -------------------------------------------------------------------
+    # LIST PROFILES
+    # -------------------------------------------------------------------
+    elif cmd == "list-profile":
+        profiles = db.list_all_profiles()
+        
+        if not profiles:
+            await message.channel.send("No profiles found in the database.")
+            return
+        
+        embed = Embed(
+            title="All Profile Names",
+            color=0x3498DB,
+        )
+        
+        profile_names = []
+        for profile in profiles:
+            name = profile['name'] or f"<@{profile['user_id']}>"
+            profile_names.append(f"• {name}")
+        
+        # Split into chunks if too many profiles (Discord embed field limit)
+        chunk_size = 20
+        for i in range(0, len(profile_names), chunk_size):
+            chunk = profile_names[i:i+chunk_size]
+            field_name = f"Profiles ({i+1}-{min(i+chunk_size, len(profile_names))})"
+            embed.add_field(
+                name=field_name,
+                value="\n".join(chunk),
+                inline=True
+            )
+        
+        embed.set_footer(text=f"Total profiles: {len(profiles)}")
+        await message.channel.send(embed=embed)
+
+    # -------------------------------------------------------------------
     # UNKNOWN COMMAND
     # -------------------------------------------------------------------
     else:
         await message.channel.send(
             "Unknown command. Supported commands: "
-            "`create-profile`, `update-profile`, `search`."
+            "`create-profile`, `update-profile`, `search`, `list-profile`."
         )
 
 

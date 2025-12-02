@@ -74,3 +74,9 @@ class Database:
                 'matched_keywords': ', '.join(matched)
             })
         return results
+
+    def list_all_profiles(self) -> List[Dict]:
+        """Get all profile names ordered by most recently updated."""
+        cur = self._conn.execute('SELECT user_id, name FROM profiles ORDER BY updated_at DESC')
+        rows = cur.fetchall()
+        return [{'user_id': r['user_id'], 'name': r['name']} for r in rows]
