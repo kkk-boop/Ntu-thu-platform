@@ -136,16 +136,24 @@ async def on_message(message: discord.Message) -> None:
 
         user = message.author
 
-        name_role = await prompt_user(
+        name = await prompt_user(
             user,
-            'Please provide your Name / Role (e.g., "Alice — AI founder"):',
+            'Please provide your Name (e.g., "Elon Musk"):',
         )
-        if name_role is None:
+        if name is None:
+            await user.send("Timed out. Profile creation cancelled.")
+            return
+
+        role = await prompt_user(
+            user,
+            'Please provide your current Role (e.g., "AI founder"):',
+        )
+        if role is None:
             await user.send("Timed out. Profile creation cancelled.")
             return
 
         description = await prompt_user(
-            user, "Short description (one or two sentences):"
+            user, "Short 30 words description of yourself:"
         )
         if description is None:
             await user.send("Timed out. Profile creation cancelled.")
@@ -166,8 +174,8 @@ async def on_message(message: discord.Message) -> None:
         # For now, we store name_role as both name and role for simplicity.
         db.upsert_profile(
             user_id=str(user.id),
-            name=name_role,
-            role=name_role,
+            name=name,
+            role=role,
             description=description,
             keywords=keywords_norm,
         )
