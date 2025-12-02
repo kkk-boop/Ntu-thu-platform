@@ -1,5 +1,4 @@
-<<<<<<< HEAD
-# MatchBot — simple profile matching Discord bot (MVP)
+# # Ntu-thu-platform MatchBot — simple profile matching Discord bot (MVP)
 
 This small project implements a Discord bot that allows users to create and update a searchable profile, and search for other users by keyword.
 
@@ -49,6 +48,3 @@ Notes & future improvements
 - Replace SQLite with Airtable/Firebase/Postgres for multi-server persistence.
 - Add slash commands (interactions) and better UI.
 - Add tag filters, LLM-enhanced matching, or recommendation scoring.
-=======
-# Ntu-thu-platform
->>>>>>> 39d2059615f213fc7276065a404b64e6596450b5
