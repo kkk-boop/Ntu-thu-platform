@@ -5,7 +5,8 @@ This small project implements a Discord bot that allows users to create and upda
 Features (MVP):
 - `@MatchBot create-profile` — interactive DM flow to create your profile
 - `@MatchBot update-profile` — edit your existing profile
-- `@MatchBot search <keyword>` — run in `#search-user` to find matching profiles
+- `@MatchBot search <keyword>` — search for matching profiles by keyword
+- `@MatchBot list-profile` — view all profile names in the database
 
 Storage: SQLite (`profiles.db`) stored next to the bot.
 
@@ -39,9 +40,10 @@ python bot.py
 
 Usage examples
 
-- `@MatchBot create-profile` (the bot DMs you and asks for Name/Role, Description, Keywords)
+- `@MatchBot create-profile` (the bot DMs you and asks for Name, Role, Description, Keywords)
 - `@MatchBot update-profile` (the bot DMs you showing current values; reply with new or empty to keep)
-- In `#search-user` channel: `@MatchBot search investor`
+- `@MatchBot search investor` (search for profiles containing "investor")
+- `@MatchBot list-profile` (shows all profile names in an organized list)
 
 Notes & future improvements
 
