@@ -252,12 +252,6 @@ async def on_message(message: discord.Message) -> None:
     # SEARCH PROFILES
     # -------------------------------------------------------------------
     elif cmd == "search":
-        # Only allow in dedicated search channel
-        if getattr(message.channel, "name", None) != SEARCH_CHANNEL_NAME:
-            await message.channel.send(
-                f"Please run searches in the `#{SEARCH_CHANNEL_NAME}` channel."
-            )
-            return
 
         if not args:
             await message.channel.send(
