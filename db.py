@@ -75,6 +75,26 @@ class Database:
             })
         return results
 
+    def search_roles(self, keyword: str, limit: int = 20) -> List[Dict]:
+        """Search for profiles by role only."""
+        kw = f'%{keyword}%'
+        sql = '''
+        SELECT user_id, name, role, description, keywords
+        FROM profiles
+        WHERE lower(role) LIKE ?
+        ORDER BY updated_at DESC
+        LIMIT ?
+        '''
+        cur = self._conn.execute(sql, (kw, limit))
+        rows = cur.fetchall()
+        return [{
+            'user_id': r['user_id'],
+            'name': r['name'],
+            'role': r['role'],
+            'description': r['description'],
+            'keywords': r['keywords']
+        } for r in rows]
+
     def list_all_profiles(self) -> List[Dict]:
         """Get all profile names ordered by most recently updated."""
         cur = self._conn.execute('SELECT user_id, name FROM profiles ORDER BY updated_at DESC')

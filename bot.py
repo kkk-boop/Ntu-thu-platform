@@ -138,7 +138,7 @@ async def on_message(message: discord.Message) -> None:
 
         name = await prompt_user(
             user,
-            'Please provide your Name (e.g., "Elon Musk"):',
+            'Please provide your Full Name (e.g., "Elon Musk"):',
         )
         if name is None:
             await user.send("Timed out. Profile creation cancelled.")
@@ -297,6 +297,46 @@ async def on_message(message: discord.Message) -> None:
         await message.channel.send(embed=embed)
 
     # -------------------------------------------------------------------
+    # SEARCH ROLES
+    # -------------------------------------------------------------------
+    elif cmd == "search-role":
+
+        if not args:
+            await message.channel.send(
+                "Usage: `@MatchBot search-role <keyword>`"
+            )
+            return
+
+        keyword = " ".join(args).strip().lower()
+        results = db.search_roles(keyword)
+
+        if not results:
+            await message.channel.send(
+                f'No roles found matching role for "{keyword}".'
+            )
+            return
+
+        embed = Embed(
+            title=f'Role search results for "{keyword}"',
+            color=0x9B59B6,
+        )
+
+        for r in results:
+            user_id = r["user_id"]
+            display = r["name"] or f"<@{user_id}>"
+            role = r["role"] or ""
+            desc = r["description"] or ""
+            mention = f"<@{user_id}>"
+
+            embed.add_field(
+                name=f"{display} — {mention}",
+                value=f"**Role:** {role}\n{desc}",
+                inline=False,
+            )
+
+        await message.channel.send(embed=embed)
+
+    # -------------------------------------------------------------------
     # LIST PROFILES
     # -------------------------------------------------------------------
     elif cmd == "list-profile":
@@ -336,7 +376,7 @@ async def on_message(message: discord.Message) -> None:
     else:
         await message.channel.send(
             "Unknown command. Supported commands: "
-            "`create-profile`, `update-profile`, `search`, `list-profile`."
+            "`create-profile`, `update-profile`, `search`, `search-role`, `list-profile`."
         )
 
 
