@@ -167,6 +167,26 @@ async def on_message(message: discord.Message) -> None:
             await user.send("Timed out. Profile creation cancelled.")
             return
 
+        company_name = await prompt_user(
+            user,
+            'Please provide your Company/Organization (e.g., "Tesla", "Stanford University"):',
+        )
+        if company_name is None:
+            await user.send("Timed out. Profile creation cancelled.")
+            return
+
+        linkedin_url = await prompt_user(
+            user,
+            'Please provide your LinkedIn URL (e.g., "https://linkedin.com/in/yourname") or leave empty to skip:',
+        )
+        if linkedin_url is None:
+            await user.send("Timed out. Profile creation cancelled.")
+            return
+        
+        # Allow empty LinkedIn URL
+        if linkedin_url.strip() == "":
+            linkedin_url = None
+
         keywords_norm = ",".join(
             [k.strip().lower() for k in keywords.split(",") if k.strip()]
         )
@@ -178,6 +198,8 @@ async def on_message(message: discord.Message) -> None:
             role=role,
             description=description,
             keywords=keywords_norm,
+            company_name=company_name,
+            linkedin_url=linkedin_url,
         )
 
         await user.send(
@@ -203,6 +225,7 @@ async def on_message(message: discord.Message) -> None:
         name_role = profile["name"]
         description = profile["description"]
         keywords = profile["keywords"]
+        company_name = profile.get("company_name", "")
 
         await user.send(
             "Current profile shown below. "
@@ -211,7 +234,8 @@ async def on_message(message: discord.Message) -> None:
         await user.send(
             f"Name/Role: {name_role}\n"
             f"Description: {description}\n"
-            f"Keywords: {keywords}"
+            f"Keywords: {keywords}\n"
+            f"Company: {company_name or 'Not set'}"
         )
 
         new_name = await prompt_user(
@@ -246,12 +270,22 @@ async def on_message(message: discord.Message) -> None:
                 [k.strip().lower() for k in new_keywords.split(",") if k.strip()]
             )
 
+        new_company = await prompt_user(
+            user, "New Company/Organization (or leave empty to keep):"
+        )
+        if new_company is None:
+            await user.send("Timed out. Update cancelled.")
+            return
+        if new_company == "":
+            new_company = company_name
+
         db.upsert_profile(
             user_id=str(user.id),
             name=new_name,
             role=new_name,
             description=new_desc,
             keywords=new_keywords_norm,
+            company_name=new_company,
         )
 
         await user.send("✅ Profile updated.")
@@ -286,11 +320,17 @@ async def on_message(message: discord.Message) -> None:
             display = r["name"] or f"<@{user_id}>"
             desc = r["description"] or ""
             matched = r["matched_keywords"]
+            linkedin_url = r["linkedin_url"]
             mention = f"<@{user_id}>"
+
+            # Build the value with description, matched keywords, and LinkedIn URL
+            field_value = f"{desc}\nMatched keywords: {matched}"
+            if linkedin_url:
+                field_value += f"\n🔗 LinkedIn: {linkedin_url}"
 
             embed.add_field(
                 name=f"{display} — {mention}",
-                value=f"{desc}\nMatched keywords: {matched}",
+                value=field_value,
                 inline=False,
             )
 
@@ -326,11 +366,17 @@ async def on_message(message: discord.Message) -> None:
             display = r["name"] or f"<@{user_id}>"
             role = r["role"] or ""
             desc = r["description"] or ""
+            linkedin_url = r["linkedin_url"]
             mention = f"<@{user_id}>"
+
+            # Build the value with role, description, and LinkedIn URL
+            field_value = f"**Role:** {role}\n{desc}"
+            if linkedin_url:
+                field_value += f"\n🔗 LinkedIn: {linkedin_url}"
 
             embed.add_field(
                 name=f"{display} — {mention}",
-                value=f"**Role:** {role}\n{desc}",
+                value=field_value,
                 inline=False,
             )
 

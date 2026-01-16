@@ -18,26 +18,66 @@ class Database:
                 role TEXT,
                 description TEXT,
                 keywords TEXT,
+                company_name TEXT,
+                linkedin_url TEXT,
                 updated_at INTEGER
             )
             ''')
+            # Migration: Add company_name column if it doesn't exist
+            self._migrate_add_company_name()
+            # Migration: Add linkedin_url column if it doesn't exist
+            self._migrate_add_linkedin_url()
 
-    def upsert_profile(self, user_id: str, name: str, role: str, description: str, keywords: str):
+    def _migrate_add_company_name(self):
+        """Migration method to add company_name column to existing tables."""
+        try:
+            # Check if company_name column already exists
+            cursor = self._conn.execute("PRAGMA table_info(profiles)")
+            columns = [column[1] for column in cursor.fetchall()]
+            
+            if 'company_name' not in columns:
+                print("Migrating database: Adding company_name column...")
+                self._conn.execute('ALTER TABLE profiles ADD COLUMN company_name TEXT')
+                print("Migration completed successfully!")
+            else:
+                print("Database already up to date - company_name column exists.")
+        except Exception as e:
+            print(f"Migration error: {e}")
+
+    def _migrate_add_linkedin_url(self):
+        """Migration method to add linkedin_url column to existing tables."""
+        try:
+            # Check if linkedin_url column already exists
+            cursor = self._conn.execute("PRAGMA table_info(profiles)")
+            columns = [column[1] for column in cursor.fetchall()]
+            
+            if 'linkedin_url' not in columns:
+                print("Migrating database: Adding linkedin_url column...")
+                self._conn.execute('ALTER TABLE profiles ADD COLUMN linkedin_url TEXT')
+                print("Migration completed successfully!")
+            else:
+                print("Database already up to date - linkedin_url column exists.")
+        except Exception as e:
+            print(f"Migration error: {e}")
+
+    def upsert_profile(self, user_id: str, name: str, role: str, description: str, keywords: str, company_name: str = None, linkedin_url: str = None):
         now = int(time.time())
         with self._conn:
             self._conn.execute('''
-                INSERT INTO profiles (user_id, name, role, description, keywords, updated_at)
-                VALUES (?, ?, ?, ?, ?, ?)
+                INSERT INTO profiles (user_id, name, role, description, keywords, company_name, linkedin_url, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                 ON CONFLICT(user_id) DO UPDATE SET
                   name=excluded.name,
                   role=excluded.role,
                   description=excluded.description,
                   keywords=excluded.keywords,
+                  company_name=excluded.company_name,
+                  linkedin_url=excluded.linkedin_url,
                   updated_at=excluded.updated_at
-            ''', (user_id, name, role, description, keywords, now))
+            ''', (user_id, name, role, description, keywords, company_name, linkedin_url, now))
 
     def get_profile(self, user_id: str) -> Optional[Dict]:
-        cur = self._conn.execute('SELECT user_id, name, role, description, keywords, updated_at FROM profiles WHERE user_id = ?', (user_id,))
+        cur = self._conn.execute('SELECT user_id, name, role, description, keywords, company_name, linkedin_url, updated_at FROM profiles WHERE user_id = ?', (user_id,))
         row = cur.fetchone()
         if not row:
             return None
@@ -46,16 +86,17 @@ class Database:
     def search(self, keyword: str, limit: int = 20) -> List[Dict]:
         kw = f'%{keyword}%'
         sql = '''
-        SELECT user_id, name, role, description, keywords,
+        SELECT user_id, name, role, description, keywords, company_name, linkedin_url,
           (CASE WHEN lower(role) LIKE ? THEN 1 ELSE 0 END)
           + (CASE WHEN lower(description) LIKE ? THEN 1 ELSE 0 END)
-          + (CASE WHEN lower(keywords) LIKE ? THEN 1 ELSE 0 END) AS score
+          + (CASE WHEN lower(keywords) LIKE ? THEN 1 ELSE 0 END)
+          + (CASE WHEN lower(company_name) LIKE ? THEN 1 ELSE 0 END) AS score
         FROM profiles
-        WHERE lower(role) LIKE ? OR lower(description) LIKE ? OR lower(keywords) LIKE ?
+        WHERE lower(role) LIKE ? OR lower(description) LIKE ? OR lower(keywords) LIKE ? OR lower(company_name) LIKE ?
         ORDER BY score DESC, updated_at DESC
         LIMIT ?
         '''
-        cur = self._conn.execute(sql, (kw, kw, kw, kw, kw, kw, limit))
+        cur = self._conn.execute(sql, (kw, kw, kw, kw, kw, kw, kw, kw, limit))
         rows = cur.fetchall()
         results = []
         for r in rows:
@@ -63,7 +104,7 @@ class Database:
             matched = []
             klist = [k.strip() for k in (r['keywords'] or '').split(',') if k.strip()]
             for k in klist:
-                if keyword in k.lower() or keyword in (r['role'] or '').lower() or keyword in (r['description'] or '').lower():
+                if keyword in k.lower() or keyword in (r['role'] or '').lower() or keyword in (r['description'] or '').lower() or keyword in (r['company_name'] or '').lower():
                     matched.append(k)
             results.append({
                 'user_id': r['user_id'],
@@ -71,6 +112,8 @@ class Database:
                 'role': r['role'],
                 'description': r['description'],
                 'keywords': r['keywords'],
+                'company_name': r['company_name'],
+                'linkedin_url': r['linkedin_url'],
                 'matched_keywords': ', '.join(matched)
             })
         return results
@@ -79,7 +122,7 @@ class Database:
         """Search for profiles by role only."""
         kw = f'%{keyword}%'
         sql = '''
-        SELECT user_id, name, role, description, keywords
+        SELECT user_id, name, role, description, keywords, company_name, linkedin_url
         FROM profiles
         WHERE lower(role) LIKE ?
         ORDER BY updated_at DESC
@@ -92,7 +135,9 @@ class Database:
             'name': r['name'],
             'role': r['role'],
             'description': r['description'],
-            'keywords': r['keywords']
+            'keywords': r['keywords'],
+            'company_name': r['company_name'],
+            'linkedin_url': r['linkedin_url']
         } for r in rows]
 
     def list_all_profiles(self) -> List[Dict]:
