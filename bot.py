@@ -337,52 +337,6 @@ async def on_message(message: discord.Message) -> None:
         await message.channel.send(embed=embed)
 
     # -------------------------------------------------------------------
-    # SEARCH ROLES
-    # -------------------------------------------------------------------
-    elif cmd == "search-role":
-
-        if not args:
-            await message.channel.send(
-                "Usage: `@MatchBot search-role <keyword>`"
-            )
-            return
-
-        keyword = " ".join(args).strip().lower()
-        results = db.search_roles(keyword)
-
-        if not results:
-            await message.channel.send(
-                f'No roles found matching role for "{keyword}".'
-            )
-            return
-
-        embed = Embed(
-            title=f'Role search results for "{keyword}"',
-            color=0x9B59B6,
-        )
-
-        for r in results:
-            user_id = r["user_id"]
-            display = r["name"] or f"<@{user_id}>"
-            role = r["role"] or ""
-            desc = r["description"] or ""
-            linkedin_url = r["linkedin_url"]
-            mention = f"<@{user_id}>"
-
-            # Build the value with role, description, and LinkedIn URL
-            field_value = f"**Role:** {role}\n{desc}"
-            if linkedin_url:
-                field_value += f"\n🔗 LinkedIn: {linkedin_url}"
-
-            embed.add_field(
-                name=f"{display} — {mention}",
-                value=field_value,
-                inline=False,
-            )
-
-        await message.channel.send(embed=embed)
-
-    # -------------------------------------------------------------------
     # LIST PROFILES
     # -------------------------------------------------------------------
     elif cmd == "list-profile":
@@ -422,7 +376,7 @@ async def on_message(message: discord.Message) -> None:
     else:
         await message.channel.send(
             "Unknown command. Supported commands: "
-            "`create-profile`, `update-profile`, `search`, `search-role`, `list-profile`."
+            "`create-profile`, `update-profile`, `search`, `list-profile`."
         )
 
 
