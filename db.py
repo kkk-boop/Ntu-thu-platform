@@ -87,25 +87,44 @@ class Database:
         kw = f'%{keyword}%'
         sql = '''
         SELECT user_id, name, role, description, keywords, company_name, linkedin_url,
-          (CASE WHEN lower(role) LIKE ? THEN 1 ELSE 0 END)
+          (CASE WHEN lower(name) LIKE ? THEN 1 ELSE 0 END)
+          + (CASE WHEN lower(role) LIKE ? THEN 1 ELSE 0 END)
           + (CASE WHEN lower(description) LIKE ? THEN 1 ELSE 0 END)
           + (CASE WHEN lower(keywords) LIKE ? THEN 1 ELSE 0 END)
-          + (CASE WHEN lower(company_name) LIKE ? THEN 1 ELSE 0 END) AS score
+          + (CASE WHEN lower(company_name) LIKE ? THEN 1 ELSE 0 END)
+          + (CASE WHEN lower(linkedin_url) LIKE ? THEN 1 ELSE 0 END) AS score
         FROM profiles
-        WHERE lower(role) LIKE ? OR lower(description) LIKE ? OR lower(keywords) LIKE ? OR lower(company_name) LIKE ?
+        WHERE lower(name) LIKE ? OR lower(role) LIKE ? OR lower(description) LIKE ? 
+        OR lower(keywords) LIKE ? OR lower(company_name) LIKE ? OR lower(linkedin_url) LIKE ?
         ORDER BY score DESC, updated_at DESC
         LIMIT ?
         '''
-        cur = self._conn.execute(sql, (kw, kw, kw, kw, kw, kw, kw, kw, limit))
+        cur = self._conn.execute(sql, (kw, kw, kw, kw, kw, kw, kw, kw, kw, kw, kw, kw, limit))
         rows = cur.fetchall()
         results = []
         for r in rows:
             # compute which keywords matched (simple intersection)
             matched = []
             klist = [k.strip() for k in (r['keywords'] or '').split(',') if k.strip()]
+            search_fields = [
+                (r['name'] or '').lower(),
+                (r['role'] or '').lower(),
+                (r['description'] or '').lower(),
+                (r['company_name'] or '').lower(),
+                (r['linkedin_url'] or '').lower()
+            ]
+            
+            # Check which keywords and fields matched
             for k in klist:
-                if keyword in k.lower() or keyword in (r['role'] or '').lower() or keyword in (r['description'] or '').lower() or keyword in (r['company_name'] or '').lower():
+                if keyword in k.lower():
                     matched.append(k)
+            
+            # Add field names that matched
+            if keyword in (r['name'] or '').lower():
+                matched.append('name')
+            if keyword in (r['company_name'] or '').lower():
+                matched.append('company')
+            
             results.append({
                 'user_id': r['user_id'],
                 'name': r['name'],
@@ -114,7 +133,7 @@ class Database:
                 'keywords': r['keywords'],
                 'company_name': r['company_name'],
                 'linkedin_url': r['linkedin_url'],
-                'matched_keywords': ', '.join(matched)
+                'matched_keywords': ', '.join(matched) if matched else 'profile match'
             })
         return results
 
